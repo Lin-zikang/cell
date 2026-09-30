@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#07111f" />
+  <title>细胞内部结构3D模型</title>
+  <style>
+    :root{
+      --bg:#07111f;--panel:#0b1728cc;--panel2:#0f2036;--line:#233854;
+      --text:#eef7ff;--muted:#9db3ca;--accent:#62d6ff;--accent2:#86ffca;
+      --warn:#ffd166;--danger:#ff7b8a;--shadow:0 14px 40px rgba(0,0,0,.28);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:radial-gradient(circle at 30% 20%,#102845 0,#07111f 45%,#050b14 100%);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;overflow:hidden}
+    button,input,select{font:inherit}
+    button{border:0;cursor:pointer}
+    .app{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:12px}
+    .topbar{grid-column:1/-1;display:flex;align-items:center;gap:10px;min-height:58px;padding:10px 12px;background:linear-gradient(180deg,rgba(14,31,52,.94),rgba(8,19,33,.88));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(12px)}
+    .brand{display:flex;align-items:center;gap:10px;min-width:210px}
+    .logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#39bdf7,#56f0be);color:#052134;font-weight:900;box-shadow:0 0 28px rgba(98,214,255,.28)}
+    .brand h1{font-size:16px;margin:0;letter-spacing:.4px}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+    .toolbar{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .btn,.seg button{padding:9px 12px;border-radius:12px;background:#13263f;color:var(--text);border:1px solid #29415f;transition:.18s ease;min-height:38px}
+    .btn:hover,.seg button:hover{background:#17304f;transform:translateY(-1px)}
+    .btn.active,.seg button.active{background:linear-gradient(135deg,#1f617f,#20664f);border-color:#61d6cc}
+    .btn.primary{background:linear-gradient(135deg,#1d7094,#267c61);border-color:#6fe8db}
+    .seg{display:flex;background:#0b1828;border:1px solid #233854;border-radius:12px;padding:3px}
+    .seg button{padding:6px 10px;border:0;background:transparent;min-height:30px}
+    .viewport{position:relative;min-width:0;min-height:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);background:linear-gradient(180deg,rgba(6,15,27,.7),rgba(4,9,17,.9))}
+    #scene{position:absolute;inset:0}
+    #scene canvas{display:block;width:100%;height:100%;outline:none}
+    .overlay{pointer-events:none;position:absolute;inset:0}
+    .help{pointer-events:auto;position:absolute;left:14px;bottom:14px;padding:9px 11px;border-radius:12px;background:#07111dcc;border:1px solid #263a51;color:#b8c8d8;font-size:12px;backdrop-filter:blur(8px)}
+    .status{pointer-events:none;position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap}.chip{font-size:12px;padding:7px 9px;border-radius:999px;background:#07111dcc;border:1px solid #28405d;color:#cbe4f4;backdrop-filter:blur(8px)}
+    .side{min-height:0;display:flex;flex-direction:column;gap:12px}
+    .card{background:linear-gradient(180deg,rgba(14,30,50,.95),rgba(8,18,31,.92));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(12px)}
+    .search{padding:12px;display:flex;gap:8px}.search input{width:100%;background:#081522;border:1px solid #29405d;color:var(--text);border-radius:12px;padding:10px 12px;outline:none}.search input:focus{border-color:#59cde9;box-shadow:0 0 0 3px rgba(89,205,233,.1)}
+    .list-card{min-height:0;display:flex;flex-direction:column;flex:1}.card-title{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border-bottom:1px solid #1d3149}.card-title b{font-size:14px}.card-title span{font-size:11px;color:var(--muted)}
+    .org-list{padding:8px;overflow:auto;scrollbar-width:thin;scrollbar-color:#31506e transparent}
+    .org{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px;border-radius:12px;transition:.16s ease;border:1px solid transparent}
+    .org:hover{background:#10233a}.org.selected{background:linear-gradient(90deg,rgba(70,190,225,.14),rgba(81,239,185,.08));border-color:#2e6173}
+    .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 16px currentColor}.org .name{font-size:13px}.org .desc{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .eye{width:34px;height:28px;border-radius:9px;background:#102039;color:#9fc0da;border:1px solid #28415f}.eye.off{opacity:.45;text-decoration:line-through}
+    .knowledge{padding:14px;max-height:270px;overflow:auto}.knowledge h2{font-size:18px;margin:0 0 8px}.knowledge .tag{display:inline-block;font-size:11px;color:#08131f;background:linear-gradient(90deg,#76d9ff,#8affc8);padding:4px 8px;border-radius:999px;font-weight:700;margin-bottom:10px}.knowledge p{margin:7px 0;color:#c8d8e7;font-size:13px;line-height:1.7}.knowledge strong{color:#ecfbff}.knowledge .tip{padding:9px 10px;border-radius:10px;background:#0a1c2f;border:1px solid #24415e;color:#9fc1d8;font-size:12px}
+    .quiz{padding:14px;display:none}.quiz.show{display:block}.quiz h3{margin:0 0 8px;font-size:15px}.quiz .q{font-size:13px;line-height:1.6;color:#d7e7f5;margin-bottom:10px}.quiz .opts{display:grid;gap:7px}.quiz .opt{width:100%;text-align:left;padding:9px 10px;border-radius:10px;background:#102239;color:#dceaf5;border:1px solid #284460}.quiz .opt.correct{background:#143c2d;border-color:#51d392}.quiz .opt.wrong{background:#40212b;border-color:#e87c90}.quiz .feedback{font-size:12px;color:#a9bfd3;margin-top:9px;min-height:18px}
+    .mobile-tabs{display:none}
+    .sheet-handle{display:none}
+    @media(max-width:980px){
+      .app{grid-template-columns:minmax(0,1fr) 310px}.brand small{display:none}
+    }
+    @media(max-width:760px){
+      html,body{overflow:auto}.app{height:100dvh;padding:8px;gap:8px;display:flex;flex-direction:column}.topbar{min-height:auto;gap:7px;padding:8px}.brand{min-width:0;flex:1}.brand h1{font-size:14px}.logo{width:34px;height:34px}.toolbar{gap:6px}.toolbar .hide-mobile{display:none}.topbar{flex-wrap:wrap}.viewport{flex:1;min-height:48vh}.side{position:absolute;z-index:20;left:8px;right:8px;bottom:8px;height:min(46vh,430px);transform:translateY(calc(100% - 58px));transition:.25s ease;pointer-events:auto}.side.open{transform:translateY(0)}.side .search,.side .list-card,.side .knowledge-card{border-radius:16px}.side{gap:8px}.sheet-handle{display:flex;justify-content:center;align-items:center;height:50px;background:linear-gradient(180deg,#0e2036,#0a1728);border:1px solid var(--line);border-radius:16px;color:#c9d9e8;box-shadow:var(--shadow)}.sheet-handle:before{content:"";width:42px;height:4px;border-radius:999px;background:#50677f;margin-right:10px}.search{display:none}.list-card{display:none}.knowledge-card{min-height:0;overflow:hidden}.knowledge{max-height:none;height:calc(46vh - 64px)}.side.open .search,.side.open .list-card{display:flex}.side.open .knowledge-card{display:none}.side.open .list-card{min-height:0;flex:1}.side.open.detail .search,.side.open.detail .list-card{display:none}.side.open.detail .knowledge-card{display:block;flex:1}.side.open.detail .knowledge{height:calc(46vh - 64px)}.help{font-size:11px;bottom:12px;left:12px;right:12px;text-align:center}.status{top:10px;left:10px}.mobile-tabs{display:flex;gap:6px;margin-left:auto}.mobile-tabs button{background:#13263f;color:#e8f6ff;border:1px solid #29415f;border-radius:10px;padding:7px 9px}
+    }
+    @media(max-width:430px){.btn{padding:8px 9px;font-size:12px}.brand h1{font-size:13px}.topbar{border-radius:14px}.viewport{border-radius:14px}.help{display:none}}
+  </style>
+  <script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">3D</div>
+        <div><h1>细胞内部结构 · 交互学习模型</h1><small>高中生物 · 真核细胞结构与功能</small></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn hide-mobile" id="explodeBtn">爆炸视图</button>
+        <button class="btn active" id="rotateBtn">自动旋转</button>
+        <button class="btn" id="quizBtn">小测验</button>
+        <button class="btn primary" id="resetBtn">复位</button>
+      </div>
+    </header>
+
+    <section class="viewport" id="viewport">
+      <div id="scene"></div>
+      <div class="overlay">
+        <div class="status"><span class="chip" id="modeChip">动物细胞</span><span class="chip" id="selectChip">点击细胞器查看知识点</span></div>
+        <div class="help">拖动旋转 · 双指/滚轮缩放 · 点击细胞器聚焦 · 右侧可控制显隐</div>
+      </div>
+    </section>
+
+    <aside class="side" id="sidePanel">
+      <button class="sheet-handle" id="sheetHandle">细胞器控制面板</button>
+      <div class="card search"><input id="searchInput" placeholder="搜索：线粒体、核糖体、高尔基体…" /></div>
+      <section class="card list-card">
+        <div class="card-title"><b>细胞器与结构</b><span id="countLabel"></span></div>
+        <div class="org-list" id="orgList"></div>
+      </section>
+      <section class="card knowledge-card" id="knowledgeCard">
+        <div class="knowledge" id="knowledge">
+          <span class="tag">使用提示</span>
+          <h2>从细胞整体开始观察</h2>
+          <p>本模型展示高中阶段常见的<strong>动物细胞结构</strong>。点击模型或右侧条目，可查看结构、功能与常见考点。</p>
+          <p class="tip">建议顺序：细胞膜 → 细胞核 → 内质网 → 核糖体 → 高尔基体 → 线粒体，逐步理解各细胞器之间的分工与协作。</p>
+        </div>
+        <div class="quiz" id="quizBox"></div>
+      </section>
+    </aside>
+  </main>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = s => document.querySelector(s);
+const sceneHost = $('#scene');
+const viewport = $('#viewport');
+const modeChip = $('#modeChip');
+const selectChip = $('#selectChip');
+const orgList = $('#orgList');
+const knowledge = $('#knowledge');
+const quizBox = $('#quizBox');
+const countLabel = $('#countLabel');
+
+const INFO = {
+  membrane:{name:'细胞膜', short:'边界与物质进出', color:'#5ed6ff', tag:'共有结构', detail:'主要由磷脂和蛋白质构成，具有一定的流动性。把细胞与外界环境分隔开，并控制物质进出，同时参与细胞间的信息交流。', point:'选择透过性是常见考点；细胞膜的结构特点常概括为“流动性”，功能特点为“选择透过性”。'},
+  cytoplasm:{name:'细胞质基质', short:'代谢反应的重要场所', color:'#7ab7ff', tag:'共有结构', detail:'细胞膜以内、细胞核以外的液态部分，含水、无机盐、脂质、糖类、氨基酸、核苷酸及多种酶。许多代谢反应在此进行。', point:'“细胞质”包括细胞质基质和悬浮其中的细胞器；不要把二者混为一谈。'},
+  nucleus:{name:'细胞核', short:'遗传信息库与代谢控制中心', color:'#b993ff', tag:'真核细胞常见', detail:'通常含核膜、核仁和染色质。细胞核保存遗传物质 DNA，是遗传和代谢活动的重要控制中心。', point:'成熟哺乳动物红细胞等少数细胞没有细胞核；一般不能说“所有真核细胞都有细胞核”。'},
+  nucleolus:{name:'核仁', short:'与核糖体形成有关', color:'#f4a7ff', tag:'细胞核内部', detail:'核仁位于细胞核内，与核糖体的形成有关。细胞分裂过程中核仁会发生周期性变化。', point:'核仁不是膜性细胞器；它与核糖体形成有关。'},
+  mitochondrion:{name:'线粒体', short:'有氧呼吸主要场所', color:'#ff9d66', tag:'双层膜', detail:'具有双层膜，内膜向内折叠形成嵴，可增加膜面积。是细胞进行有氧呼吸的主要场所，能为生命活动提供能量。', point:'线粒体含少量 DNA 和核糖体，能进行一定程度的半自主复制；需能量多的细胞往往线粒体更丰富。'},
+  roughER:{name:'粗面内质网', short:'蛋白质合成与加工运输', color:'#59c8ff', tag:'单层膜', detail:'膜表面附着核糖体，常与分泌蛋白、膜蛋白等的合成、初步加工和运输密切相关。', point:'核糖体才是“蛋白质合成场所”；粗面内质网负责相关蛋白的加工与运输。'},
+  smoothER:{name:'光面内质网', short:'脂质合成与物质代谢', color:'#43e0ce', tag:'单层膜', detail:'表面没有核糖体，参与脂质合成，以及某些细胞中的解毒、钙离子储存等过程。', point:'粗面内质网与光面内质网功能不同，但可看作内质网系统的不同区域。'},
+  ribosome:{name:'核糖体', short:'蛋白质合成场所', color:'#ffd166', tag:'无膜结构', detail:'由 RNA 和蛋白质组成，是细胞内合成蛋白质的场所。可游离在细胞质基质中，也可附着在粗面内质网上。', point:'原核细胞也有核糖体，因此“核糖体是真核细胞特有”是错误的。'},
+  golgi:{name:'高尔基体', short:'加工、分类、包装与运输', color:'#ff7bb6', tag:'单层膜', detail:'由扁平膜囊和囊泡组成。对来自内质网的蛋白质等进行进一步加工、分类、包装并运输。', point:'植物细胞中，高尔基体还与细胞壁成分的形成有关。'},
+  lysosome:{name:'溶酶体', short:'细胞内消化与清除', color:'#7df0a9', tag:'单层膜', detail:'含多种水解酶，可分解衰老、损伤的细胞器以及进入细胞的部分物质，维持细胞内部环境相对稳定。', point:'教材常以动物细胞为代表介绍溶酶体；其核心关键词是“水解酶”和“细胞内消化”。'},
+  vesicle:{name:'囊泡', short:'细胞内物质运输', color:'#9ee9ff', tag:'膜性小泡', detail:'囊泡可在内质网、高尔基体与细胞膜之间运输物质，是细胞内膜系统进行物质转运的重要形式。', point:'分泌蛋白路线常见：核糖体 → 粗面内质网 → 囊泡 → 高尔基体 → 囊泡 → 细胞膜。'},
+  centrosome:{name:'中心体', short:'与动物细胞有丝分裂有关', color:'#78a7ff', tag:'动物细胞常见', detail:'由两个中心粒及周围物质组成，在动物细胞有丝分裂过程中参与纺锤体形成。', point:'高等植物细胞一般没有中心体。'},
+  cytoskeleton:{name:'细胞骨架', short:'维持形态与胞内运输', color:'#b5f4ff', tag:'蛋白质纤维网络', detail:'由蛋白质纤维构成的动态网络，参与维持细胞形态、细胞运动、细胞器定位以及胞内物质运输。', point:'细胞骨架不是“骨头”，而是不断组装与拆卸的蛋白质结构。'}
+};
+
+let exploded = false, autoRotate = true;
+let selectedKey = null;
+let organelles = [];
+let quizIndex = 0;
+
+/* ================= 渲染器 ================= */
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.domElement.style.display = 'block';
+renderer.domElement.style.width = '100%';
+renderer.domElement.style.height = '100%';
+renderer.domElement.style.touchAction = 'none';
+sceneHost.appendChild(renderer.domElement);
+
+/* ================= 场景与相机 ================= */
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x07111f, 0.02);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 400);
+const VIEW_DIR = new THREE.Vector3(0.62, 0.46, 0.95).normalize();
+camera.position.copy(VIEW_DIR).multiplyScalar(20);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .06;
+controls.minDistance = 5; controls.maxDistance = 60;
+controls.target.set(0, 0, 0);
+controls.autoRotate = true; controls.autoRotateSpeed = .55;
+controls.update();
+
+/** 根据视口宽高比自动计算相机距离，把整颗细胞完整装进画面中央 */
+function frameCell(){
+  const aspect = Math.max(0.25, camera.aspect || 1);
+  const radius = 7.2;                                          // 动物细胞包围球半径
+  const vFov = THREE.MathUtils.degToRad(camera.fov);
+  const distV = radius / Math.tan(vFov / 2);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+  const distH = radius / Math.tan(hFov / 2);
+  const dist = THREE.MathUtils.clamp(Math.max(distV, distH) * 1.06, controls.minDistance, controls.maxDistance);
+
+  controls.target.set(0, 0, 0);
+  camera.position.copy(VIEW_DIR).multiplyScalar(dist);
+  camera.near = Math.max(0.1, dist * 0.02);
+  camera.far  = Math.max(200, dist * 12);
+  camera.updateProjectionMatrix();
+  controls.update();
+}
+
+scene.add(new THREE.HemisphereLight(0xbfe9ff,0x17202d,2.1));
+const keyLight = new THREE.DirectionalLight(0xffffff,2.7); keyLight.position.set(8,12,9); scene.add(keyLight);
+const rim = new THREE.PointLight(0x4ee3ff,28,28); rim.position.set(-7,4,-5); scene.add(rim);
+
+const cellGroup = new THREE.Group(); scene.add(cellGroup);
+const stars = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({color:0x5d7fa6,size:.03,transparent:true,opacity:.35}));
+{
+  const pts=[]; for(let i=0;i<260;i++){ const r=24*Math.random()+8, a=Math.random()*Math.PI*2, z=(Math.random()-.5)*22; pts.push(Math.cos(a)*r,(Math.random()-.5)*16,z+Math.sin(a)*r); }
+  stars.geometry.setAttribute('position',new THREE.Float32BufferAttribute(pts,3)); scene.add(stars);
+}
+
+function mat(color, opacity=1, rough=.45, metal=.03){ return new THREE.MeshStandardMaterial({color,transparent:opacity<1,opacity,roughness:rough,metalness:metal,side:THREE.DoubleSide}); }
+function addOrg(key,obj,base){ obj.userData={key,base:base.clone(),visible:true}; cellGroup.add(obj); organelles.push(obj); return obj; }
+function ellipsoid(g, m, s, p, r=[0,0,0]){ const mesh=new THREE.Mesh(g,m); mesh.scale.set(...s); mesh.position.set(...p); mesh.rotation.set(...r); return mesh; }
+function tubeCurve(points,color,rad=.08){ const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))); return new THREE.Mesh(new THREE.TubeGeometry(curve,48,rad,8,false),mat(color,.8,.5)); }
+function clearModel(){
+  while(cellGroup.children.length){ const o=cellGroup.children.pop(); o.traverse(n=>{ if(n.geometry) n.geometry.dispose?.(); if(n.material){ if(Array.isArray(n.material))n.material.forEach(x=>x.dispose?.()); else n.material.dispose?.(); }}); }
+  organelles=[];
+}
+
+function buildCell(){
+  clearModel();
+
+  // 细胞膜 + 细胞质基质
+  const membrane=ellipsoid(new THREE.SphereGeometry(5.8,72,48),mat(0x56cfff,.14,.3),[1.05,.82,.9],[0,0,0]);
+  membrane.material.depthWrite=false; addOrg('membrane',membrane,new THREE.Vector3(0,0,0));
+  const inner=ellipsoid(new THREE.SphereGeometry(5.5,48,32),mat(0x4e91cb,.055,.8),[1.05,.82,.9],[0,0,0]); inner.material.depthWrite=false; addOrg('cytoplasm',inner,new THREE.Vector3(0,0,0));
+
+  // 细胞核 + 核仁
+  const nucleusPos=[-1.2,.5,.4];
+  const nucleus=ellipsoid(new THREE.SphereGeometry(2.15,48,36),mat(0xa580ff,.5,.35),[1,1,.95],nucleusPos); addOrg('nucleus',nucleus,new THREE.Vector3(...nucleusPos));
+  const nucleolus=ellipsoid(new THREE.SphereGeometry(.68,32,20),mat(0xf0a2ff,.9,.3),[1,1,1],[nucleusPos[0]-.25,nucleusPos[1]+.1,nucleusPos[2]+.42]); addOrg('nucleolus',nucleolus,nucleolus.position.clone());
+
+  // 内质网
+  for(let i=0;i<5;i++){
+    const geo=new THREE.TorusGeometry(2.55+i*.25,.12,8,64,Math.PI*1.35);
+    const er=new THREE.Mesh(geo,mat(0x50bfff,.72,.5)); er.position.set(nucleusPos[0]+.4,nucleusPos[1]-.1+i*.05,nucleusPos[2]-.2); er.rotation.set(Math.PI/2.7,i*.3,.3+i*.08); addOrg('roughER',er,er.position.clone());
+  }
+  for(let i=0;i<4;i++){
+    const pts=[]; for(let j=0;j<7;j++) pts.push([1.2+j*.36,1.4+Math.sin(j+i)*.35-i*.45,-1.4+i*.35]);
+    const er=tubeCurve(pts,0x3fe0cb,.11); addOrg('smoothER',er,new THREE.Vector3(2.2,.5,-.7));
+  }
+  // 核糖体
+  const ribGeo=new THREE.SphereGeometry(.09,12,8), ribMat=mat(0xffd166,1,.4);
+  for(let i=0;i<54;i++){
+    const a=Math.random()*Math.PI*2, r=3.8+Math.random()*1.2;
+    const p=new THREE.Vector3(Math.cos(a)*r,(Math.random()-.5)*5,Math.sin(a)*r*.7);
+    const rb=new THREE.Mesh(ribGeo,ribMat.clone()); rb.position.copy(p); addOrg('ribosome',rb,p.clone());
+  }
+
+  // 高尔基体
+  for(let i=0;i<6;i++){
+    const g=new THREE.TorusGeometry(1.4+i*.07,.12,8,50,Math.PI*1.45); const m=new THREE.Mesh(g,mat(0xff69b0,.83,.4));
+    const bp=new THREE.Vector3(2.4,-.5,1.35); m.position.copy(bp).add(new THREE.Vector3(i*.08,i*.17,0));m.rotation.set(1.25,.2,.65);addOrg('golgi',m,m.position.clone());
+  }
+
+  // 线粒体
+  function mito(p,s=1,rot=0){
+    const group=new THREE.Group();group.position.set(...p);group.rotation.z=rot;group.scale.setScalar(s);
+    const body=ellipsoid(new THREE.SphereGeometry(1.05,34,22),mat(0xff8a58,.88,.35),[1.65,.72,.75],[0,0,0]);group.add(body);
+    for(let i=-2;i<=2;i++){const pts=[];for(let j=0;j<7;j++)pts.push([-1.15+j*.38,Math.sin(j*1.3+i)*.22,i*.16]);const cr=tubeCurve(pts,0xffd08b,.045);group.add(cr)}
+    addOrg('mitochondrion',group,new THREE.Vector3(...p));
+  }
+  mito([2.8,1.8,-1.7],.9,.4); mito([2.5,-2.2,-.6],.8,-.5); mito([-3.5,-1.9,-1.5],.78,.25); mito([-.1,2.6,1.9],.72,-.45);
+
+  // 溶酶体 + 囊泡
+  function lys(p,key='lysosome',col=0x78efa8,sz=.43){const o=new THREE.Mesh(new THREE.SphereGeometry(sz,20,14),mat(col,.88,.35));o.position.set(...p);addOrg(key,o,o.position.clone())}
+  lys([3.9,.1,1.8]); lys([1.8,-2.5,1.8]); lys([-3.3,2.0,-1.3]);
+  lys([3.5,-1.3,-2.3],'vesicle',0x99e7ff,.25);lys([2.9,-.4,-2.0],'vesicle',0x99e7ff,.22);lys([3.1,.6,2.5],'vesicle',0x99e7ff,.27);
+
+  // 中心体
+  const cent=new THREE.Group();cent.position.set(-.1,-2.45,2.1);
+  for(let k=0;k<2;k++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,1.5,12,1,true),mat(0x739eff,.95,.4));c.rotation.z=Math.PI/2;c.rotation.y=k?Math.PI/2:0;c.position.x=k*.45;cent.add(c)} addOrg('centrosome',cent,cent.position.clone());
+
+  // 细胞骨架
+  const cs=new THREE.Group();
+  const csLines=[ [[-4,-2,-2],[0,0,0],[4,2,2]], [[-4,2,1],[0,-.5,0],[3,-2,-1]], [[-1,-3,2],[0,0,0],[1,3,-2]], [[3,-2,2],[0,.8,0],[-3,1,-2]] ];
+  csLines.forEach(p=>cs.add(tubeCurve(p,0x9adff2,.035)));addOrg('cytoskeleton',cs,new THREE.Vector3(0,0,0));
+
+  refreshList();
+  applyExplode(false);
+}
+
+function refreshList(filter=''){
+  const keys=[...new Set(organelles.map(o=>o.userData.key))].filter(k=>INFO[k].name.includes(filter)||INFO[k].short.includes(filter));
+  countLabel.textContent=`${keys.length} 项`;
+  orgList.innerHTML=keys.map(k=>{
+    const visible=organelles.some(o=>o.userData.key===k&&o.visible);
+    return `<div class="org ${selectedKey===k?'selected':''}" data-key="${k}"><span class="dot" style="color:${INFO[k].color};background:${INFO[k].color}"></span><div><div class="name">${INFO[k].name}</div><div class="desc">${INFO[k].short}</div></div><button class="eye ${visible?'':'off'}" data-eye="${k}" title="显示/隐藏">◉</button></div>`
+  }).join('');
+}
+
+orgList.addEventListener('click',e=>{
+  const eye=e.target.closest('[data-eye]'); if(eye){e.stopPropagation();toggleVisibility(eye.dataset.eye);return}
+  const row=e.target.closest('.org');if(row) selectOrg(row.dataset.key,true);
+});
+function toggleVisibility(key){
+  const arr=organelles.filter(o=>o.userData.key===key); const next=!arr.some(o=>o.visible); arr.forEach(o=>o.visible=next); refreshList($('#searchInput').value.trim());
+}
+function selectOrg(key,focus=false){
+  selectedKey=key; const i=INFO[key]; selectChip.textContent=i.name; refreshList($('#searchInput').value.trim());
+  knowledge.innerHTML=`<span class="tag">${i.tag}</span><h2>${i.name}</h2><p><strong>核心功能：</strong>${i.short}</p><p>${i.detail}</p><p class="tip"><strong>高中考点：</strong>${i.point}</p>`;
+  quizBox.classList.remove('show'); knowledge.style.display='block';
+  if(window.matchMedia('(max-width:760px)').matches){$('#sidePanel').classList.add('open','detail');$('#sheetHandle').textContent='返回细胞器列表';}
+  if(focus){ const obj=organelles.find(o=>o.userData.key===key&&o.visible) || organelles.find(o=>o.userData.key===key); if(obj){ const p=new THREE.Vector3(); obj.getWorldPosition(p); animateCameraTo(p); }}
+}
+function animateCameraTo(target){
+  const start=controls.target.clone(), end=target.clone(); const camStart=camera.position.clone(); const dir=camStart.clone().sub(start).normalize(); const dist=Math.max(8,Math.min(13,camStart.distanceTo(start))); const camEnd=end.clone().add(dir.multiplyScalar(dist)); let t=0;
+  function step(){t=Math.min(1,t+.045);const k=1-Math.pow(1-t,3);controls.target.lerpVectors(start,end,k);camera.position.lerpVectors(camStart,camEnd,k); if(t<1)requestAnimationFrame(step)} step();
+}
+
+const raycaster=new THREE.Raycaster(), mouse=new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown',e=>{ renderer.domElement.dataset.down=`${e.clientX},${e.clientY}`; });
+renderer.domElement.addEventListener('pointerup',e=>{
+  const [x,y]=(renderer.domElement.dataset.down||'0,0').split(',').map(Number); if(Math.hypot(e.clientX-x,e.clientY-y)>7)return;
+  const rect=renderer.domElement.getBoundingClientRect(); mouse.x=((e.clientX-rect.left)/rect.width)*2-1;mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(cellGroup.children,true); for(const h of hits){let o=h.object;while(o&&o.parent!==cellGroup)o=o.parent;if(o?.userData?.key){selectOrg(o.userData.key,true);break}}
+});
+
+function applyExplode(animate=true){
+  organelles.forEach(o=>{
+    const base=o.userData.base, dir=base.length()<.2?new THREE.Vector3(0,0,0):base.clone().normalize(); const target=base.clone().add(exploded?dir.multiplyScalar(1.7):new THREE.Vector3());
+    if(!animate){o.position.copy(target);return}
+    const start=o.position.clone();let t=0;(function s(){t=Math.min(1,t+.06);const k=1-Math.pow(1-t,3);o.position.lerpVectors(start,target,k);if(t<1)requestAnimationFrame(s)})();
+  });
+}
+
+function resetView(){
+  selectedKey=null;
+  selectChip.textContent='点击细胞器查看知识点';
+  refreshList($('#searchInput').value.trim());
+  frameCell();
+  knowledge.innerHTML=`<span class="tag">复位完成</span><h2>动物细胞</h2><p>已恢复整体观察。可通过拖动、缩放、点击与右侧显隐控制继续学习。</p><p class="tip">观察提示：注意细胞核、内质网、高尔基体、线粒体等结构在细胞质中的相对位置与分工协作。</p>`;
+}
+
+$('#explodeBtn').onclick=()=>{exploded=!exploded;$('#explodeBtn').classList.toggle('active',exploded);applyExplode(true)};
+$('#rotateBtn').onclick=()=>{autoRotate=!autoRotate;controls.autoRotate=autoRotate;$('#rotateBtn').classList.toggle('active',autoRotate)};
+$('#resetBtn').onclick=resetView;
+$('#searchInput').addEventListener('input',e=>refreshList(e.target.value.trim()));
+
+const QUIZ=[
+  {q:'蛋白质合成的直接场所是？',a:['核糖体','高尔基体','线粒体','溶酶体'],ok:0,ex:'核糖体是蛋白质合成场所；粗面内质网与相关蛋白的加工、运输密切相关。'},
+  {q:'有氧呼吸的主要场所是？',a:['叶绿体','线粒体','细胞核','中心体'],ok:1,ex:'线粒体是有氧呼吸的主要场所，可为生命活动提供能量。'},
+  {q:'动物细胞中与有丝分裂纺锤体形成有关的结构是？',a:['中心体','溶酶体','高尔基体','核仁'],ok:0,ex:'中心体与动物细胞有丝分裂过程中纺锤体的形成有关。'},
+  {q:'分泌蛋白运输路线中，高尔基体的主要作用更接近？',a:['复制DNA','加工、分类、包装','进行光合作用','合成ATP的唯一场所'],ok:1,ex:'高尔基体对来自内质网的物质进一步加工、分类、包装，并通过囊泡运输。'},
+  {q:'下列哪一结构没有膜？',a:['溶酶体','线粒体','核糖体','高尔基体'],ok:2,ex:'核糖体属于无膜结构，由RNA和蛋白质组成。'}
+];
+$('#quizBtn').onclick=()=>{knowledge.style.display='none';quizBox.classList.add('show');if(window.matchMedia('(max-width:760px)').matches){$('#sidePanel').classList.add('open','detail');$('#sheetHandle').textContent='返回细胞器列表';}renderQuiz()};
+function renderQuiz(){const q=QUIZ[quizIndex%QUIZ.length];quizBox.innerHTML=`<h3>知识小测 · ${quizIndex%QUIZ.length+1}/${QUIZ.length}</h3><div class="q">${q.q}</div><div class="opts">${q.a.map((x,i)=>`<button class="opt" data-i="${i}">${String.fromCharCode(65+i)}. ${x}</button>`).join('')}</div><div class="feedback">选择答案后显示解析。</div>`}
+quizBox.addEventListener('click',e=>{const b=e.target.closest('.opt');if(!b)return;const q=QUIZ[quizIndex%QUIZ.length],i=+b.dataset.i;quizBox.querySelectorAll('.opt').forEach((x,idx)=>{x.disabled=true;if(idx===q.ok)x.classList.add('correct');else if(idx===i)x.classList.add('wrong')});quizBox.querySelector('.feedback').innerHTML=`${i===q.ok?'回答正确。':'再想一想。'} ${q.ex} <button class="btn" id="nextQ" style="margin-left:6px;padding:5px 8px">下一题</button>`;$('#nextQ').onclick=()=>{quizIndex=(quizIndex+1)%QUIZ.length;renderQuiz()}});
+
+$('#sheetHandle').onclick=()=>{const panel=$('#sidePanel');if(panel.classList.contains('detail')){panel.classList.remove('detail');panel.classList.add('open');$('#sheetHandle').textContent='收起控制面板';}else if(panel.classList.contains('open')){panel.classList.remove('open');$('#sheetHandle').textContent='细胞器控制面板';}else{panel.classList.add('open');$('#sheetHandle').textContent='收起控制面板';}};
+
+/* ================= 尺寸自适应 ================= */
+function resizeRenderer(){
+  const r = viewport.getBoundingClientRect();
+  const w = Math.max(1, Math.round(r.width));
+  const h = Math.max(1, Math.round(r.height));
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+let framed = false;
+function handleResize(){
+  const r = viewport.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return;
+  resizeRenderer();
+  if (!framed) { framed = true; frameCell(); }
+}
+
+new ResizeObserver(handleResize).observe(viewport);
+window.addEventListener('resize', handleResize);
+window.addEventListener('orientationchange', () => setTimeout(handleResize, 120));
+
+/* ================= 启动 ================= */
+buildCell();
+handleResize();
+requestAnimationFrame(handleResize);
+
+function loop(){
+  controls.update();
+  stars.rotation.y += .00018;
+  renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(loop);
+</script>
+</body>
+</html>
